@@ -1,49 +1,58 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
+library(here)
 library(shiny)
+library(data.table)
+library(ggplot2)
+library(vroom)
 
-# Define UI for application that draws a histogram
+injuries <- vroom(here('neiss/injuries.tsv.gz'))
+population <- vroom(here('neiss/population.tsv'))
+products <- vroom(here('neiss/products.tsv'))
+
+lapply(list(injuries,population,products),setDT)
+
 ui <- fluidPage(
-
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
+    fluidRow(
+        column(6,
+               selectInput("code",label ="Produce", setNames(products$prod_code,products$title)))
+    ),
+    fluidRow(
+        column(4,tableOutput("diag")),
+        column(4,tableOutput("body_part")),
+        column(4,tableOutput("location"))
+    ),
+    fluidRow(
+        column(12,plotOutput("age_sex"))
     )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
-
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
+    selected <- reactive(injuries[prod_code == input$code])
+    
+    output$diag <- renderTable(
+        selected()[,.(n=sum(weight)),by=.(age,sex)][order(-n)]
+    )
+    output$body_part <- renderTable(
+        selected()[,.(n=sum(weight)),by=.(body_part)][order(-n)]
+    )
+    output$location <- renderTable(
+        selected()[,.(n=sum(weight)),by=.(location)][order(-n)]
+    )
+    
+    summary <- reactive({
+        population[selected()[,.(n=sum(weight)),by=.(age,sex)][order(-n)],
+                   on=.(age,sex)][
+                       c(.SD,rate = n/population*10000)
+                   ]
     })
+    
+    output$age_sex <- renderPlot({
+        summary() %>% 
+            ggplot(aes(x = age,y = n, colour = sex))+
+            geom_line()+
+            labs(y="Estimated Injutied")
+    },res = 96)
 }
 
-# Run the application 
 shinyApp(ui = ui, server = server)
+
+

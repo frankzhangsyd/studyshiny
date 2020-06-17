@@ -4,6 +4,8 @@ library(data.table)
 library(ggplot2)
 library(vroom)
 
+`%>%` <- magrittr::`%>%`
+
 injuries <- vroom(here('neiss/injuries.tsv.gz'))
 population <- vroom(here('neiss/population.tsv'))
 products <- vroom(here('neiss/products.tsv'))

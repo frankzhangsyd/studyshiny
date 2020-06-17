@@ -1,0 +1,12 @@
+name: injury
+title: injury
+username:
+account: dingrui-frank-zhang
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2466374
+bundleId: 3281209
+url: https://dingrui-frank-zhang.shinyapps.io/injury/
+when: 1592382361.56333
+asMultiple: FALSE
+asStatic: FALSE
